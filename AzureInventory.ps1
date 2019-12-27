@@ -69,11 +69,6 @@ $azureNICDetails = Get-AzureRmNetworkInterface
 # Fetch the Storage Accounts from the subscription
 $azureStorageAccountDetails = Get-AzureRmStorageAccount
 
-#Fetch the SQL Server and Db info from the subscription
-$azureSQLServerDetails = (Get-AzureRMSqlServer).ServerName
-$azureRGDetails  = (Get-AzureRmResourceGroup).ResourceGroupName
-$azureSQLDBDetails = Get-AzureRmSqlDatabase -ServerName $azureSQLServerDetails -ResourceGroupName $azureRGDetails
-
 # Fetch the Virtual Networks from the subscription
 $azureVirtualNetworkDetails = Get-AzureRmVirtualNetwork
 
@@ -247,35 +242,8 @@ Set-Location -Path $path_to_store_inventory_csv_files
     $storage_account_object | Export-Csv "Storage_Account_Details.csv" -NoTypeInformation -Force
 
 
-#####################################################################
-#    Fetching SQL Server Db Details                                 #
-#####################################################################
-
-        $SQL_Server_object = $null
-        $SQL_Server_object = @()
-
-        foreach($azureSQLDBDetails_Iterator in $azureSQLDBDetails){
-    
-            # Populating the cells
-
-            $SQL_Server_object_temp = new-object PSObject
-
-            $SQL_Server_object_temp | add-member -MemberType NoteProperty -Name "ResourceGroupName" -Value $azureSQLDBDetails_Iterator.ResourceGroupName
-            $SQL_Server_object_temp | add-member -MemberType NoteProperty -Name "SQLServerName" -Value $azureSQLDBDetails_Iterator.ServerName
-            $SQL_Server_object_temp | add-member -MemberType NoteProperty -Name "DatabaseName" -Value $azureSQLDBDetails_Iterator.DatabaseName
-            $SQL_Server_object_temp | add-member -MemberType NoteProperty -Name "Location" -Value $azureSQLDBDetails_Iterator.Location
-            $SQL_Server_object_temp | add-member -MemberType NoteProperty -Name "ElasticPool" -Value $azureSQLDBDetails_Iterator.ElasticPoolName
-            $SQL_Server_object_temp | add-member -MemberType NoteProperty -Name "Status" -Value $azureSQLDBDetails_Iterator.Status
-
-            
-        
-            # Setting the pointer to the next row and first column
-            $SQL_Server_object += $SQL_Server_object_temp
-    }
-
-    $SQL_Server_object | Export-Csv "SQL_Server_Details.csv" -NoTypeInformation -Force
-
-
+# Create a new directory with the subscription name
+$path_to_store_inventory_csv_files = "c:\AzureInventory\" + $subscription_id
 
 #####################################################################
 #    Fetching Virtual Network Details                               #
@@ -317,6 +285,23 @@ Set-Location -Path $path_to_store_inventory_csv_files
 
         $virtual_network_object | Export-Csv "Virtual_networks_details.csv" -NoTypeInformation -Force
 
+
+#####################################################################
+#    Fetching Resource Groups and Resources                         #
+#####################################################################
+
+#Fetch Resource Groups
+$azureRGDetails = @(Get-AzureRmResourceGroup)
+
+#Fetch Resources in the subscription
+$azureResources = Get-AzureRmResource |select Name,ResourceGroupName,Location| Export-Csv "Resources_details.csv" -NoTypeInformation -Force
+
+#####################################################################
+#    Fetching SQL Resources                                         #
+#####################################################################
+
+#Fetch the SQL Server and Db info from the subscription
+$azureSQLServerList = get-azurermsqlserver |Get-AzureRmSqlDatabase|select ResourceGroupName,ServerName,DatabaseName,Location,DatabaseId,ElasticPoolName,Status| Export-Csv "SQL_Server_details.csv" -NoTypeInformation -Force
 
 
 #####################################################################
